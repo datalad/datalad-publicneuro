@@ -14,6 +14,7 @@ The handler does not support stat operations.
 """
 from __future__ import annotations
 
+import os
 import re
 import tarfile
 import tempfile
@@ -36,6 +37,7 @@ from datalad_next.url_operations.exceptions import (
 from datalad_next.url_operations.http import HttpUrlOperations
 from datalad_next.utils import DataladAuth
 from datalad_next.utils.requests_auth import _get_renewed_request
+from requests.auth import HTTPBasicAuth
 
 if TYPE_CHECKING:
     from datalad import ConfigManager
@@ -70,9 +72,9 @@ class PublicNeuroAuth(DataladAuth):
         self,
         cfg: ConfigManager,
         dataset_id: str,
-        credential: str | None = None,
+        credential_name: str | None = None,
     ):
-        super().__init__(cfg=cfg, credential=credential)
+        super().__init__(cfg=cfg, credential=credential_name)
         self.dataset_id = dataset_id
         self.credential_encoding = 'latin-1'
 
@@ -131,7 +133,7 @@ class PublicNeuroHttpUrlOperations(HttpUrlOperations):
         publicneuro_auth = self._authenticate(
             from_url=url,
             dataset_id=dataset_id,
-            credential=credential,
+            credential_name=credential,
             timeout=timeout,
         )
 
@@ -216,7 +218,7 @@ class PublicNeuroHttpUrlOperations(HttpUrlOperations):
         publicneuro_auth = self._authenticate(
             from_url=from_url,
             dataset_id=dataset_id,
-            credential=credential,
+            credential_name=credential,
             timeout=timeout,
         )
 
@@ -273,15 +275,41 @@ class PublicNeuroHttpUrlOperations(HttpUrlOperations):
         self,
         from_url: str,
         dataset_id: str,
-        credential: str | None = None,
+        credential_name: str | None = None,
         timeout: float | None = None
     ) -> str:
-        """Authenticate for the dataset `dataset_id` with credential `credential`."""
-        auth = PublicNeuroAuth(
-            cfg=self.cfg,
-            dataset_id=dataset_id,
-            credential=credential,
+        """Authenticate for the dataset `dataset_id`
+
+        Try to authenticate the user, either with the credentials stored under
+        `credential_name`, or with credentials provided by the environment
+        variables `PUBLICNEURO_USER_<dataset_id>` and
+        `PUBLICNEURO_PASSWORD_<dataset_id>`.
+
+        If the environment variables are set, they will be used for
+        authentication and authorization, and DataLad's credential system
+        will be ignored. This is useful for system where the uncurl-remote is
+        not able to prompt for credential entry, e.g., on Windows systems.
+        """
+
+        environment_user = os.environ.get('PUBLICNEURO_USER_' + dataset_id)
+        environment_password = os.environ.get('PUBLICNEURO_PASSWORD_' + dataset_id)
+        use_environment = (
+                environment_user is not None
+                and environment_password is not None
         )
+
+        if use_environment:
+            auth = HTTPBasicAuth(
+                username=environment_user.encode('utf-8'),
+                password=environment_password.encode('utf-8'),
+            )
+        else:
+            auth = PublicNeuroAuth(
+                cfg=self.cfg,
+                dataset_id=dataset_id,
+                credential_name=credential_name,
+            )
+
         publicneuro_auth = self._get_authentication_info(
             from_url=from_url,
             dataset_id=dataset_id,
@@ -289,11 +317,12 @@ class PublicNeuroHttpUrlOperations(HttpUrlOperations):
             timeout=timeout,
         )
 
-        # Authentication and authorization succeeded, save the credentials.
-        auth.save_entered_credential(
-            suggested_name='publicneuro',
-            context='PublicnEUro.eu',
-        )
+        if not use_environment:
+            # Authentication and authorization succeeded, save the credentials.
+            auth.save_entered_credential(
+                suggested_name='publicneuro',
+                context='PublicnEUro.eu',
+            )
         return publicneuro_auth
 
     def _process_url(
