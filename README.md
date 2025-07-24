@@ -35,7 +35,21 @@ The command will prompt for credentials if no credentials are available yet.
 After successful authentication, the file will be downloaded and added to the annex.
 Valid credentials will be stored in DataLad's credential store and automatically used for subsequent `addurl`-commands.
 
+## Credentials on Windows
+
+The DataLad credential system prompts for credentials that are not yet known.
+On Windows the special remote might freeze, when prompting for credentials.
+There are two ways to avoid this:
+
+1. Use `datalad credentials set` to set the credentials for the authentication realm before adding or "getting" publicneuro URLs.
+   The authentication realm for the PublicnEUro dataset `<dataset-id>` is `https://datacatalog.publicneuro.eu/<dataset-id>`.
+   For example, the authentication realm for the dataset `PN000001` is `https://datacatalog.publicneuro.eu/PN000001`.
+
+2. Use the environment variables `PUBLICNEURO_USER_<dataset-id>` and `PUBLICNEURO_PASSWORD_<dataset-id>` to set the credentials.
+   For example, for the dataset `PN000001`, you can set the environment variables `PUBLICNEURO_USER_PN000001` and `PUBLICNEURO_PASSWORD_PN000001`.
+   If both environment variables are set, the special remote will use them instead of DataLad's credential system and will not prompt for credentials.
+
 
 # Contributing
 
-PRs are welcome! Please open an issue or a pull request if you find a bug or have a feature request.
+PRs and issues are very welcome! Please open an issue or a pull request if you find a bug or have a feature request.
