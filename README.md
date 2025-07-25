@@ -37,13 +37,20 @@ Valid credentials will be stored in DataLad's credential store and automatically
 
 ## Credentials on Windows
 
-The DataLad credential system prompts for credentials that are not yet known.
-On Windows the special remote might freeze, when prompting for credentials.
+The special remote uses DataLad's credential system.
+This credential system will prompt for credentials that are not yet known.
+On Windows the special remote might freeze, when the credential system prompts for credentials.
 There are two ways to avoid this:
 
 1. Use `datalad credentials set` to set the credentials for the authentication realm before adding or "getting" publicneuro URLs.
    The authentication realm for the PublicnEUro dataset `<dataset-id>` is `https://datacatalog.publicneuro.eu/<dataset-id>`.
-   For example, the authentication realm for the dataset `PN000001` is `https://datacatalog.publicneuro.eu/PN000001`.
+   For example, the authentication realm for the dataset `PN000001` is `https://datacatalog.publicneuro.eu/PN000001`. 
+   In oder to set the credentials for user `joe@example.com` for this realm, use the following command:
+   ```bash
+   > datalad credentials set joe-publicneuro type=user_password user=joe@example.com realm="https://datacatalog.publicneuro.eu/PN000001"
+   ```
+   The `datalad credentials ...` command will prompt for the password and store it in DataLad's credential store.
+   The credential system will then use the stored credentials and not prompt for credentials when adding or "getting" PublicnEUro URLs.
 
 2. Use the environment variables `PUBLICNEURO_USER_<dataset-id>` and `PUBLICNEURO_PASSWORD_<dataset-id>` to set the credentials.
    For example, for the dataset `PN000001`, you can set the environment variables `PUBLICNEURO_USER_PN000001` and `PUBLICNEURO_PASSWORD_PN000001`.
